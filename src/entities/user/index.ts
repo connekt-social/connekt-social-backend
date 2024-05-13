@@ -1,7 +1,7 @@
 import { User as UserParams } from "@prisma/client";
 import { compareSync, hashSync } from "bcrypt";
 import { FastifyInstance } from "fastify";
-import { sign } from "jsonwebtoken";
+import { sign, decode } from "jsonwebtoken";
 import fp from "fastify-plugin";
 
 type CreateUserWithEmailParams = {
@@ -12,9 +12,9 @@ type CreateUserWithEmailParams = {
 
 export const userClass = (fastify: FastifyInstance) => {
   return class User {
-    user: Partial<UserParams>;
+    user: UserParams;
     constructor(user: Partial<UserParams>) {
-      this.user = user;
+      this.user = user as UserParams;
     }
 
     static async findFirst(
@@ -34,13 +34,7 @@ export const userClass = (fastify: FastifyInstance) => {
           email,
           name,
           password: hashSync(password, 10),
-          teams: teamId
-            ? { connect: { id: teamId } }
-            : {
-                create: {
-                  name: "Personal",
-                },
-              },
+          teams: teamId ? { connect: { id: teamId } } : undefined,
         },
       });
 
@@ -55,9 +49,16 @@ export const userClass = (fastify: FastifyInstance) => {
     createJwt() {
       return sign({ userId: this.user.id }, fastify.config.JWT_SECRET);
     }
+
+    static async findByToken(token: string) {
+      const decoded = decode(token) as { userId: number };
+      if (!decoded) return null;
+      return await User.findFirst({ where: { id: decoded.userId } });
+    }
   };
 };
 
+export type UserInstance = InstanceType<ReturnType<typeof userClass>>;
 export default fp(async (fastify, opts) => {
   const User = userClass(fastify);
 

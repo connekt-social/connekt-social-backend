@@ -25,7 +25,7 @@ const userLogin: FastifyPluginAsync = async (fastify, opts) => {
       });
 
       if (!user || !user.validatePassword(request.body.password)) {
-        return reply.badRequest("Invalid credentials");
+        return reply.unauthorized("Invalid credentials");
       }
 
       const token = user.createJwt();
