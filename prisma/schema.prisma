@@ -33,3 +33,47 @@ model Team {
   updatedAt   DateTime @updatedAt
   members     User[]
 }
+
+model Plugin {
+  id                 Int                      @id @default(autoincrement())
+  name               String
+  description        String?
+  version            String
+  url                String?
+  installationStatus PluginInstallationStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  components PluginComponent[]
+}
+
+enum PluginInstallationStatus {
+  PENDING
+  INSTALLED
+  FAILED
+}
+
+model PluginComponent {
+  id          Int            @id @default(autoincrement())
+  name        String
+  description String?
+  type        PluginType
+  function    PluginFunction
+  pluginId    Int
+  enabled     Boolean        @default(false) // Whether the plugin is enabled
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  plugin Plugin @relation(fields: [pluginId], references: [id])
+}
+
+enum PluginType {
+  FRONTEND
+  BACKEND
+}
+
+enum PluginFunction {
+  FILESTORAGE
+}

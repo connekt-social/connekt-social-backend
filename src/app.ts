@@ -1,6 +1,7 @@
 import { join } from "path";
 import AutoLoad, { AutoloadPluginOptions } from "@fastify/autoload";
 import { FastifyPluginAsync, FastifyServerOptions } from "fastify";
+import { statSync, mkdirSync } from "fs";
 
 export interface AppOptions
   extends FastifyServerOptions,
@@ -13,6 +14,30 @@ const app: FastifyPluginAsync<AppOptions> = async (
   opts
 ): Promise<void> => {
   // Place here your custom code!
+
+  try {
+    statSync("./temp");
+  } catch (error: any) {
+    if (error.code === "ENOENT") {
+      console.log("Creating temp folder");
+      mkdirSync("./temp");
+    } else {
+      console.log(error);
+      throw new Error("Error while getting temp folder");
+    }
+  }
+
+  try {
+    statSync("./csplugins");
+  } catch (error: any) {
+    if (error.code === "ENOENT") {
+      console.log("Creating csplugins folder");
+      mkdirSync("./csplugins");
+    } else {
+      console.log(error);
+      throw new Error("Error while getting temp folder");
+    }
+  }
 
   // Do not touch the following lines
 

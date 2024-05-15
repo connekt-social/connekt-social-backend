@@ -10,7 +10,6 @@ export default fastifyPlugin(async function (fastify, opts) {
     async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
       const token = request.cookies.token;
 
-      console.log("token", token);
       if (!token) {
         reply.unauthorized("Unauthorized");
         return;
