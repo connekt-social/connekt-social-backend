@@ -3,7 +3,6 @@ import { FastifyPluginAsync } from "fastify";
 const uploadFile: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   fastify.post("/", async function (request, reply) {
     const data = await request.file();
-    console.log(data);
     if (!data) {
       return reply.badRequest("No file received");
     }
@@ -13,6 +12,9 @@ const uploadFile: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     const fileUploadPlugin = await fastify.prisma.pluginComponent.findFirst({
       where: {
         function: "FILESTORAGE",
+        plugin: {
+          enabled: true,
+        },
       },
     });
 
@@ -31,8 +33,8 @@ const uploadFile: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
 
       //This should be loaded from the plugin configuration
       {
-        serviceKeyPath: "",
-        storageBucket: "",
+        serviceKeyPath: "./private/connekt-social.json",
+        storageBucket: "connekt-social.appspot.com",
       }
     );
 

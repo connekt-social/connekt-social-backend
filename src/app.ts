@@ -49,6 +49,13 @@ const app: FastifyPluginAsync<AppOptions> = async (
     options: opts,
   });
 
+  // This loads all global middleware defined in middleware folder
+  // they can be added to routes using decorators
+  void fastify.register(AutoLoad, {
+    dir: join(__dirname, "middleware"),
+    options: opts,
+  });
+
   // void fastify.register(
   //   fp<FastifyCorsOptions>(async (fastify) => {
   //     fastify.log.info(

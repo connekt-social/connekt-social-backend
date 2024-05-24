@@ -41,11 +41,13 @@ model Plugin {
   version            String
   url                String?
   installationStatus PluginInstallationStatus @default(PENDING)
+  enabled            Boolean                  @default(true) // Whether the plugin is enabled
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  components PluginComponent[]
+  components   PluginComponent[]
+  contentTypes ContentType[]
 }
 
 enum PluginInstallationStatus {
@@ -61,7 +63,6 @@ model PluginComponent {
   type        PluginType
   function    PluginFunction
   pluginId    Int
-  enabled     Boolean        @default(false) // Whether the plugin is enabled
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -76,4 +77,18 @@ enum PluginType {
 
 enum PluginFunction {
   FILESTORAGE
+  CONTENTTYPE
+}
+
+model ContentType {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  schema      Json?
+  uiSchema    Json?
+  pluginId    Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  plugin Plugin? @relation(fields: [pluginId], references: [id])
 }

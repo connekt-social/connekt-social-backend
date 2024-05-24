@@ -1,5 +1,5 @@
 import fp from "fastify-plugin";
-import uploadFile from "./upload";
+import uploadFile from "./uploadfile";
 
 export default fp(async (fastify, opts) => {
   fastify.register(

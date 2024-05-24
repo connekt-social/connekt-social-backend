@@ -6,13 +6,12 @@ import util from "util";
 import { pipeline } from "stream";
 import { Prisma } from "@prisma/client";
 import dayjs from "dayjs";
+import installationSwitch from "../../utils/plugins/installationSwitch";
 
 const pump = util.promisify(pipeline);
 
 const installPlugin: FastifyPluginAsync = async (fastify, opts) => {
   fastify.post("/", async function (request, reply) {
-    console.log(request.body);
-
     const data = await request.file();
 
     if (!data) {
@@ -68,6 +67,12 @@ const installPlugin: FastifyPluginAsync = async (fastify, opts) => {
               })
             ),
           });
+
+          await Promise.all(
+            plugin.default.default.config.components.map((component: any) =>
+              installationSwitch(fastify, component, result.id)
+            )
+          );
 
           await fastify.prisma.plugin.update({
             data: {
