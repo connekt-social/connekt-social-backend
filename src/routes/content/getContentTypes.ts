@@ -5,13 +5,7 @@ const getContentTypes: FastifyPluginAsync = async (
   opts
 ): Promise<void> => {
   fastify.get("/", async function (request, reply) {
-    const contentTypes = await fastify.prisma.contentType.findMany({
-      where: {
-        plugin: {
-          enabled: true,
-        },
-      },
-    });
+    const contentTypes = await fastify.prisma.contentType.findMany();
     return contentTypes;
   });
 };

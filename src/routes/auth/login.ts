@@ -18,6 +18,8 @@ const userLogin: FastifyPluginAsync = async (fastify, opts) => {
       },
     },
     async function (request, reply) {
+      console.log("loigincookig", request.cookies.token);
+
       const user = await fastify.User.findFirst({
         where: {
           email: request.body.email,
@@ -30,10 +32,12 @@ const userLogin: FastifyPluginAsync = async (fastify, opts) => {
 
       const token = user.createJwt();
 
+      console.log("token", token);
       reply.setCookie("token", token, {
         httpOnly: true,
         expires: dayjs().add(1, "day").toDate(),
         secure: fastify.config.NODE_ENV === "production",
+        path: "/",
       });
 
       return {

@@ -14,24 +14,26 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String?
-  email     String?  @unique
-  phone     String?  @unique
-  password  String?
-  ssoToken  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  teams     Team[]
+  id          Int           @id @default(autoincrement())
+  name        String?
+  email       String?       @unique
+  phone       String?       @unique
+  password    String?
+  ssoToken    String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  teams       Team[]
+  ContentItem ContentItem[]
 }
 
 model Team {
-  id          Int      @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   name        String
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   members     User[]
+  ContentItem ContentItem[]
 }
 
 model Plugin {
@@ -46,8 +48,8 @@ model Plugin {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  components   PluginComponent[]
-  contentTypes ContentType[]
+  components                  PluginComponent[]
+  ContentTypeSupportedPlugins ContentTypeSupportedPlugins[]
 }
 
 enum PluginInstallationStatus {
@@ -86,9 +88,41 @@ model ContentType {
   description String?
   schema      Json?
   uiSchema    Json?
-  pluginId    Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  plugin Plugin? @relation(fields: [pluginId], references: [id])
+  ContentTypeSupportedPlugins ContentTypeSupportedPlugins[]
+  ContentItem                 ContentItem[]
+}
+
+model ContentTypeSupportedPlugins {
+  contentTypeId Int
+  pluginId      Int
+
+  contentTypes ContentType @relation(fields: [contentTypeId], references: [id])
+  plugins      Plugin      @relation(fields: [pluginId], references: [id])
+
+  @@id([contentTypeId, pluginId])
+}
+
+enum ContentItemSize {
+  SQUARE
+  LANDSCAPE
+  PORTRAIT
+}
+
+model ContentItem {
+  id            Int             @id @default(autoincrement())
+  teamId        Int?
+  userId        Int
+  contentTypeId Int
+  data          Json
+  title         String
+  size          ContentItemSize
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  team        Team?       @relation(fields: [teamId], references: [id])
+  contentType ContentType @relation(fields: [contentTypeId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
 }

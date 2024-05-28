@@ -1,7 +1,7 @@
 import { User as UserParams } from "@prisma/client";
 import { compareSync, hashSync } from "bcrypt";
 import { FastifyInstance } from "fastify";
-import { sign, decode } from "jsonwebtoken";
+import { sign, verify, JwtPayload } from "jsonwebtoken";
 import fp from "fastify-plugin";
 
 type CreateUserWithEmailParams = {
@@ -47,13 +47,23 @@ export const userClass = (fastify: FastifyInstance) => {
     }
 
     createJwt() {
-      return sign({ userId: this.user.id }, fastify.config.JWT_SECRET);
+      return sign({ userId: this.user.id }, fastify.config.JWT_SECRET, {
+        expiresIn: "1d",
+      });
     }
 
     static async findByToken(token: string) {
-      const decoded = decode(token) as { userId: number };
-      if (!decoded) return null;
-      return await User.findFirst({ where: { id: decoded.userId } });
+      try {
+        const decoded = verify(
+          token,
+          fastify.config.JWT_SECRET
+        ) as JwtPayload as { userId: number };
+        if (!decoded) return null;
+        return await User.findFirst({ where: { id: decoded.userId } });
+      } catch (error) {
+        console.log("error", error);
+        throw error;
+      }
     }
   };
 };
