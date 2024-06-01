@@ -1,17 +1,22 @@
 import { ContentItemSize } from "@prisma/client";
 import { Static, Type } from "@sinclair/typebox";
 import Ajv from "ajv";
+import dayjs from "dayjs";
 import { FastifyPluginAsync } from "fastify";
 
 const contentItem: FastifyPluginAsync = async (
   fastify,
   opts
 ): Promise<void> => {
+  /*
+  Create a new content item
+  The content title, caption and thumbnail are gotten from the data object. 
+  TODO: Add a way to change the property that gives the title, caption and thumbnail based on the content type
+  */
   const itemUploadSchema = Type.Object({
     teamId: Type.Optional(Type.Number()),
     contentTypeId: Type.Number(),
-    data: Type.Object({}),
-    title: Type.String(),
+    data: Type.Any(),
     size: Type.Optional(Type.String()),
   });
   type itemUploadType = Static<typeof itemUploadSchema>;
@@ -19,7 +24,7 @@ const contentItem: FastifyPluginAsync = async (
   fastify.post<{
     Body: itemUploadType;
   }>("/", async function (request, reply) {
-    const { teamId, contentTypeId, data, title, size } = request.body;
+    const { teamId, contentTypeId, data, size } = request.body;
 
     const { user } = request;
     if (!user) {
@@ -63,7 +68,9 @@ const contentItem: FastifyPluginAsync = async (
         userId: user.id,
         contentTypeId: contentType.id,
         data,
-        title,
+        title: data.title ?? `${dayjs().format("YYYY-MM-DD HH:mm:ss")} Upload`,
+        caption: data.caption,
+        thumbnail: data.thumbnail,
         size: (size ?? "SQUARE") as ContentItemSize,
       },
     });

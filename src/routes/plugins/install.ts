@@ -7,6 +7,7 @@ import { pipeline } from "stream";
 import { Prisma } from "@prisma/client";
 import dayjs from "dayjs";
 import installationSwitch from "../../utils/plugins/installationSwitch";
+import { pluginComponentCleanup } from "../../utils/plugins/pluginCleanup";
 
 const pump = util.promisify(pipeline);
 
@@ -31,13 +32,35 @@ const installPlugin: FastifyPluginAsync = async (fastify, opts) => {
       readFileSync("./temp/package/package.json", "utf-8")
     );
 
-    const result = await fastify.prisma.plugin.create({
-      data: {
+    let result = await fastify.prisma.plugin.findFirst({
+      where: {
         name: packageJson.name,
-        version: packageJson.version,
-        description: packageJson.description,
       },
     });
+
+    let pluginExists = false;
+
+    if (!result) {
+      result = await fastify.prisma.plugin.create({
+        data: {
+          name: packageJson.name,
+          version: packageJson.version,
+          description: packageJson.description,
+        },
+      });
+    } else {
+      pluginExists = true;
+      result = await fastify.prisma.plugin.update({
+        data: {
+          version: packageJson.version,
+          description: packageJson.description,
+          installationStatus: "PENDING",
+        },
+        where: {
+          id: result.id,
+        },
+      });
+    }
 
     exec(
       `npm install ./csplugins/${data.filename}`,
@@ -49,12 +72,27 @@ const installPlugin: FastifyPluginAsync = async (fastify, opts) => {
         try {
           const plugin = await import(packageJson.name);
 
+          //Load params that cannot be loaded from package.json
+          await fastify.prisma.plugin.update({
+            data: {
+              logoUrl: plugin.default.default.config.logoUrl,
+              settingsSchema: plugin.default.default.config.settingsSchema,
+            },
+            where: {
+              id: result.id,
+            },
+          });
+
           appendFileSync(
             "./temp/log.txt",
             `${dayjs().toISOString()}: Plugin imported successfully ${JSON.stringify(
               plugin
             )}\n`
           );
+
+          if (pluginExists) {
+            await pluginComponentCleanup(fastify, result.id);
+          }
 
           await fastify.prisma.pluginComponent.createMany({
             data: plugin.default.default.config.components.map(
@@ -67,7 +105,6 @@ const installPlugin: FastifyPluginAsync = async (fastify, opts) => {
               })
             ),
           });
-
           await Promise.all(
             plugin.default.default.config.components.map((component: any) =>
               installationSwitch(fastify, component, result.id)

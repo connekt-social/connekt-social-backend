@@ -44,6 +44,9 @@ model Plugin {
   url                String?
   installationStatus PluginInstallationStatus @default(PENDING)
   enabled            Boolean                  @default(true) // Whether the plugin is enabled
+  logoUrl            String?
+  settings           Json?
+  settingsSchema     Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -69,7 +72,7 @@ model PluginComponent {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  plugin Plugin @relation(fields: [pluginId], references: [id])
+  plugin Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade)
 }
 
 enum PluginType {
@@ -84,6 +87,7 @@ enum PluginFunction {
 
 model ContentType {
   id          Int      @id @default(autoincrement())
+  code        String //a short human readable code for the content type, when a plugin is creating a content type, it will check this code, if it exists, it will not create a new content type. This is to prevent duplicate content types
   name        String
   description String?
   schema      Json?
@@ -99,8 +103,8 @@ model ContentTypeSupportedPlugins {
   contentTypeId Int
   pluginId      Int
 
-  contentTypes ContentType @relation(fields: [contentTypeId], references: [id])
-  plugins      Plugin      @relation(fields: [pluginId], references: [id])
+  contentTypes ContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
+  plugins      Plugin      @relation(fields: [pluginId], references: [id], onDelete: Cascade)
 
   @@id([contentTypeId, pluginId])
 }
@@ -118,6 +122,8 @@ model ContentItem {
   contentTypeId Int
   data          Json
   title         String
+  caption       String?
+  thumbnail     String?
   size          ContentItemSize
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt

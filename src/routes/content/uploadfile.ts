@@ -16,6 +16,9 @@ const uploadFile: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
           enabled: true,
         },
       },
+      include: {
+        plugin: true,
+      },
     });
 
     if (!fileUploadPlugin) {
@@ -30,12 +33,7 @@ const uploadFile: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
         uploadPath: `testFiles/${data.filename}`,
         contents: buff,
       },
-
-      //This should be loaded from the plugin configuration
-      {
-        serviceKeyPath: "./private/connekt-social.json",
-        storageBucket: "connekt-social.appspot.com",
-      }
+      fileUploadPlugin.plugin.settings
     );
 
     return { url };
