@@ -11,7 +11,6 @@ export default async function installationSwitch(
       await fastify.prisma.contentType.create({
         data: {
           ...component.data,
-          pluginId,
         },
       });
       break;

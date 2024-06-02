@@ -53,6 +53,7 @@ model Plugin {
 
   components                  PluginComponent[]
   ContentTypeSupportedPlugins ContentTypeSupportedPlugins[]
+  PluginDocument              PluginDocument[]
 }
 
 enum PluginInstallationStatus {
@@ -83,17 +84,29 @@ enum PluginType {
 enum PluginFunction {
   FILESTORAGE
   CONTENTTYPE
+  PLUGIN_SETTINGS_TAB
 }
 
 model ContentType {
-  id          Int      @id @default(autoincrement())
-  code        String //a short human readable code for the content type, when a plugin is creating a content type, it will check this code, if it exists, it will not create a new content type. This is to prevent duplicate content types
-  name        String
-  description String?
-  schema      Json?
-  uiSchema    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  //a short human readable code for the content type, 
+  //when a user is getting a content type, it will check this code, 
+  //all content types with the same code will be considered the same content type
+  //and their schemas will be merged. Hopefully plugins 
+  //will not have redundant properties in their schemas
+  code          String
+  name          String
+  description   String?
+  schema        Json?
+  uiSchema      Json?
+  //this is the path to the title of the content item
+  titlePath     String?
+  //this is the path to the thumbnail of the content item
+  thumbnailPath String?
+  //this is the path to the caption of the content item
+  captionPath   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   ContentTypeSupportedPlugins ContentTypeSupportedPlugins[]
   ContentItem                 ContentItem[]
@@ -131,4 +144,18 @@ model ContentItem {
   team        Team?       @relation(fields: [teamId], references: [id])
   contentType ContentType @relation(fields: [contentTypeId], references: [id])
   user        User        @relation(fields: [userId], references: [id])
+}
+
+// A Plugin Document is a document that is created by a plugin. 
+// It will be used by plugins as a way to store data that is specific to the plugin
+model PluginDocument {
+  id            Int      @id @default(autoincrement())
+  pluginId      Int
+  pluginVersion String? // This is the version of the plugin that created the document. Since the documents will not be deleted during the plugin cleanup, this is to help the plugin know which version of the plugin created the document
+  documentType  String? // This is the type of document that is being stored. This is to help the plugin know what type of document it is storing
+  data          Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  plugin Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade)
 }

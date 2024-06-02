@@ -3,6 +3,7 @@ import { Static, Type } from "@sinclair/typebox";
 import Ajv from "ajv";
 import dayjs from "dayjs";
 import { FastifyPluginAsync } from "fastify";
+import { safeGet } from "../../utils/safeGet";
 
 const contentItem: FastifyPluginAsync = async (
   fastify,
@@ -68,9 +69,13 @@ const contentItem: FastifyPluginAsync = async (
         userId: user.id,
         contentTypeId: contentType.id,
         data,
-        title: data.title ?? `${dayjs().format("YYYY-MM-DD HH:mm:ss")} Upload`,
-        caption: data.caption,
-        thumbnail: data.thumbnail,
+        title: safeGet(
+          data,
+          contentType.titlePath,
+          `${dayjs().format("YYYY-MM-DD HH:mm:ss")} Upload`
+        ),
+        caption: safeGet(data, contentType.captionPath),
+        thumbnail: safeGet(data, contentType.thumbnailPath),
         size: (size ?? "SQUARE") as ContentItemSize,
       },
     });
