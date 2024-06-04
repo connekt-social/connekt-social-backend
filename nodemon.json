@@ -1,5 +1,5 @@
 {
-  "execMap": {
-    "ts": "ts-node -P tsconfig.json src/server.ts"
-  }
+  "watch": ["dist"],
+  "ext": "js",
+  "exec": "node server.js"
 }

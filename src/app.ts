@@ -1,13 +1,19 @@
 import { join } from "path";
 import AutoLoad, { AutoloadPluginOptions } from "@fastify/autoload";
 import { FastifyPluginAsync, FastifyServerOptions } from "fastify";
-import { statSync, mkdirSync } from "fs";
+import { statSync, mkdirSync, readFileSync } from "fs";
 
 export interface AppOptions
   extends FastifyServerOptions,
     Partial<AutoloadPluginOptions> {}
 // Pass --options via CLI arguments in command to enable these options.
-const options: AppOptions = {};
+const options: AppOptions = {
+  //@ts-ignore
+  https: {
+    key: readFileSync("private/localhost-key.pem"),
+    cert: readFileSync("private/localhost.pem"),
+  },
+};
 
 const app: FastifyPluginAsync<AppOptions> = async (
   fastify,

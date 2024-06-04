@@ -14,24 +14,26 @@ datasource db {
 }
 
 model User {
-  id          Int           @id @default(autoincrement())
-  name        String?
-  email       String?       @unique
-  phone       String?       @unique
-  password    String?
-  ssoToken    String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id        Int      @id @default(autoincrement())
+  name      String?
+  email     String?  @unique
+  phone     String?  @unique
+  password  String?
+  ssoToken  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   teams       Team[]
   ContentItem ContentItem[]
 }
 
 model Team {
-  id          Int           @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
   description String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   members     User[]
   ContentItem ContentItem[]
 }
@@ -53,7 +55,6 @@ model Plugin {
 
   components                  PluginComponent[]
   ContentTypeSupportedPlugins ContentTypeSupportedPlugins[]
-  PluginDocument              PluginDocument[]
 }
 
 enum PluginInstallationStatus {
@@ -73,7 +74,8 @@ model PluginComponent {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  plugin Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  plugin            Plugin             @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  frontendComponent FrontendComponent?
 }
 
 enum PluginType {
@@ -85,6 +87,7 @@ enum PluginFunction {
   FILESTORAGE
   CONTENTTYPE
   PLUGIN_SETTINGS_TAB
+  PLUGIN_REST_API
 }
 
 model ContentType {
@@ -146,16 +149,15 @@ model ContentItem {
   user        User        @relation(fields: [userId], references: [id])
 }
 
-// A Plugin Document is a document that is created by a plugin. 
-// It will be used by plugins as a way to store data that is specific to the plugin
-model PluginDocument {
-  id            Int      @id @default(autoincrement())
-  pluginId      Int
-  pluginVersion String? // This is the version of the plugin that created the document. Since the documents will not be deleted during the plugin cleanup, this is to help the plugin know which version of the plugin created the document
-  documentType  String? // This is the type of document that is being stored. This is to help the plugin know what type of document it is storing
-  data          Json
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+model FrontendComponent {
+  id                Int    @id @default(autoincrement())
+  entryPoint        String
+  componentName     String
+  propSchema        Json?
+  pluginComponentId Int    @unique
 
-  plugin Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pluginComponent PluginComponent @relation(fields: [pluginComponentId], references: [id], onDelete: Cascade)
 }

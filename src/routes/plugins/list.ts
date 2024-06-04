@@ -20,6 +20,13 @@ const listPlugins: FastifyPluginAsync = async (
       where: {
         id,
       },
+      include: {
+        components: {
+          include: {
+            frontendComponent: true,
+          },
+        },
+      },
     });
     return plugin;
   });

@@ -4,7 +4,8 @@ import { FastifyInstance } from "fastify";
 export default async function installationSwitch(
   fastify: FastifyInstance,
   component: { data: any; function: PluginFunction },
-  pluginId: number
+  pluginId: number,
+  componentId: number
 ) {
   switch (component.function) {
     case "CONTENTTYPE":
@@ -14,6 +15,18 @@ export default async function installationSwitch(
         },
       });
       break;
+
+    case "PLUGIN_SETTINGS_TAB":
+      await fastify.prisma.frontendComponent.create({
+        data: {
+          componentName: component.data.componentName,
+          entryPoint: component.data.entryPoint,
+          pluginComponentId: componentId,
+          propSchema: component.data.propSchema,
+        },
+      });
+      break;
+
     default:
       break;
   }

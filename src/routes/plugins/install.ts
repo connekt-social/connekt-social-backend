@@ -4,7 +4,6 @@ import { appendFileSync, readFileSync, createWriteStream } from "fs";
 import { exec } from "child_process";
 import util from "util";
 import { pipeline } from "stream";
-import { Prisma } from "@prisma/client";
 import dayjs from "dayjs";
 import installationSwitch from "../../utils/plugins/installationSwitch";
 import { pluginComponentCleanup } from "../../utils/plugins/pluginCleanup";
@@ -94,22 +93,45 @@ const installPlugin: FastifyPluginAsync = async (fastify, opts) => {
             await pluginComponentCleanup(fastify, result.id);
           }
 
-          await fastify.prisma.pluginComponent.createMany({
-            data: plugin.default.default.config.components.map(
-              (component: any): Prisma.PluginComponentCreateManyInput => ({
-                function: component.function,
-                type: component.type,
-                pluginId: result.id,
-                name: packageJson.name,
-                description: packageJson.description,
-              })
-            ),
-          });
-          await Promise.all(
-            plugin.default.default.config.components.map((component: any) =>
-              installationSwitch(fastify, component, result.id)
-            )
+          const promises = plugin.default.default.config.components.map(
+            async (component: any) => {
+              const dbRecord = await fastify.prisma.pluginComponent.create({
+                data: {
+                  function: component.function,
+                  type: component.type,
+                  pluginId: result.id,
+                  name: packageJson.name,
+                  description: packageJson.description,
+                },
+              });
+
+              await installationSwitch(
+                fastify,
+                component,
+                result.id,
+                dbRecord.id
+              );
+            }
           );
+
+          await Promise.all(promises);
+
+          // await fastify.prisma.pluginComponent.createMany({
+          //   data: plugin.default.default.config.components.map(
+          //     (component: any): Prisma.PluginComponentCreateManyInput => ({
+          //       function: component.function,
+          //       type: component.type,
+          //       pluginId: result.id,
+          //       name: packageJson.name,
+          //       description: packageJson.description,
+          //     })
+          //   ),
+          // });
+          // await Promise.all(
+          //   plugin.default.default.config.components.map((component: any) =>
+          //     installationSwitch(fastify, component, result.id)
+          //   )
+          // );
 
           await fastify.prisma.plugin.update({
             data: {
