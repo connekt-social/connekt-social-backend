@@ -1,0 +1,163 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  email     String?  @unique
+  phone     String?  @unique
+  password  String?
+  ssoToken  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teams       Team[]
+  ContentItem ContentItem[]
+}
+
+model Team {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     User[]
+  ContentItem ContentItem[]
+}
+
+model Plugin {
+  id                 Int                      @id @default(autoincrement())
+  name               String
+  description        String?
+  version            String
+  url                String?
+  installationStatus PluginInstallationStatus @default(PENDING)
+  enabled            Boolean                  @default(true) // Whether the plugin is enabled
+  logoUrl            String?
+  settings           Json?
+  settingsSchema     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  components                  PluginComponent[]
+  ContentTypeSupportedPlugins ContentTypeSupportedPlugins[]
+}
+
+enum PluginInstallationStatus {
+  PENDING
+  INSTALLED
+  FAILED
+}
+
+model PluginComponent {
+  id          Int            @id @default(autoincrement())
+  name        String
+  description String?
+  type        PluginType
+  function    PluginFunction
+  pluginId    Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  plugin            Plugin             @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  frontendComponent FrontendComponent?
+}
+
+enum PluginType {
+  FRONTEND
+  BACKEND
+}
+
+enum PluginFunction {
+  FILESTORAGE
+  CONTENTTYPE
+  PLUGIN_SETTINGS_TAB
+  PLUGIN_REST_API
+}
+
+model ContentType {
+  id            Int      @id @default(autoincrement())
+  //a short human readable code for the content type, 
+  //when a user is getting a content type, it will check this code, 
+  //all content types with the same code will be considered the same content type
+  //and their schemas will be merged. Hopefully plugins 
+  //will not have redundant properties in their schemas
+  code          String
+  name          String
+  description   String?
+  schema        Json?
+  uiSchema      Json?
+  //this is the path to the title of the content item
+  titlePath     String?
+  //this is the path to the thumbnail of the content item
+  thumbnailPath String?
+  //this is the path to the caption of the content item
+  captionPath   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  ContentTypeSupportedPlugins ContentTypeSupportedPlugins[]
+  ContentItem                 ContentItem[]
+}
+
+model ContentTypeSupportedPlugins {
+  contentTypeId Int
+  pluginId      Int
+
+  contentTypes ContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
+  plugins      Plugin      @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@id([contentTypeId, pluginId])
+}
+
+enum ContentItemSize {
+  SQUARE
+  LANDSCAPE
+  PORTRAIT
+}
+
+model ContentItem {
+  id            Int             @id @default(autoincrement())
+  teamId        Int?
+  userId        Int
+  contentTypeId Int
+  data          Json
+  title         String
+  caption       String?
+  thumbnail     String?
+  size          ContentItemSize
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  team        Team?       @relation(fields: [teamId], references: [id])
+  contentType ContentType @relation(fields: [contentTypeId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+}
+
+model FrontendComponent {
+  id                Int    @id @default(autoincrement())
+  entryPoint        String
+  componentName     String
+  propSchema        Json?
+  pluginComponentId Int    @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pluginComponent PluginComponent @relation(fields: [pluginComponentId], references: [id], onDelete: Cascade)
+}
