@@ -5,7 +5,7 @@ const listPlugins: FastifyPluginAsync = async (
   opts
 ): Promise<void> => {
   fastify.get("/", async function (request, reply) {
-    const plugins = await fastify.prisma.plugin.findMany();
+    const plugins = await fastify.sequelize.models.Plugin.findAll();
     return plugins;
   });
 
@@ -16,17 +16,20 @@ const listPlugins: FastifyPluginAsync = async (
   }>("/:id", async function (request, reply) {
     const { id: idString } = request.params;
     const id = parseInt(idString);
-    const plugin = await fastify.prisma.plugin.findFirst({
+    const plugin = await fastify.sequelize.models.Plugin.findOne({
       where: {
         id,
       },
-      include: {
-        components: {
-          include: {
-            frontendComponent: true,
-          },
+      include: [
+        {
+          model: fastify.sequelize.models.PluginComponent,
+          include: [
+            {
+              model: fastify.sequelize.models.FrontendComponent,
+            },
+          ],
         },
-      },
+      ],
     });
     return plugin;
   });

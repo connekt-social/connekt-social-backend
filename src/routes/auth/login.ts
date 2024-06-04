@@ -18,9 +18,7 @@ const userLogin: FastifyPluginAsync = async (fastify, opts) => {
       },
     },
     async function (request, reply) {
-      console.log("loigincookig", request.cookies.token);
-
-      const user = await fastify.User.findFirst({
+      const user = await fastify.sequelize.models.User.findOne({
         where: {
           email: request.body.email,
         },
@@ -30,9 +28,9 @@ const userLogin: FastifyPluginAsync = async (fastify, opts) => {
         return reply.unauthorized("Invalid credentials");
       }
 
-      const token = user.createJwt();
+      const token = user.createJwt(fastify);
 
-      console.log("token", token);
+      // console.log(".token", token);
       reply.setCookie("token", token, {
         httpOnly: true,
         expires: dayjs().add(1, "day").toDate(),

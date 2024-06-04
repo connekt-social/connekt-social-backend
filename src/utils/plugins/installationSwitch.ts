@@ -1,5 +1,5 @@
-import { PluginFunction } from "@prisma/client";
 import { FastifyInstance } from "fastify";
+import { PluginFunction } from "../../entities/PluginComponent";
 
 export default async function installationSwitch(
   fastify: FastifyInstance,
@@ -9,21 +9,19 @@ export default async function installationSwitch(
 ) {
   switch (component.function) {
     case "CONTENTTYPE":
-      await fastify.prisma.contentType.create({
-        data: {
-          ...component.data,
-        },
+      await fastify.sequelize.models.ContentType.create({
+        ...component.data,
+        pluginId,
       });
       break;
 
     case "PLUGIN_SETTINGS_TAB":
-      await fastify.prisma.frontendComponent.create({
-        data: {
-          componentName: component.data.componentName,
-          entryPoint: component.data.entryPoint,
-          pluginComponentId: componentId,
-          propSchema: component.data.propSchema,
-        },
+      await fastify.sequelize.models.FrontendComponent.create({
+        componentName: component.data.componentName,
+        entryPoint: component.data.entryPoint,
+        pluginComponentId: componentId,
+        propSchema: component.data.propSchema,
+        pluginId,
       });
       break;
 

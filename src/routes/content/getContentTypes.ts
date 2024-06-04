@@ -5,7 +5,7 @@ const getContentTypes: FastifyPluginAsync = async (
   opts
 ): Promise<void> => {
   fastify.get("/", async function (request, reply) {
-    const contentTypes = await fastify.prisma.contentType.findMany();
+    const contentTypes = await fastify.sequelize.models.ContentType.findAll();
     return contentTypes;
   });
 };

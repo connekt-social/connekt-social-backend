@@ -7,6 +7,7 @@ import { pipeline } from "stream";
 import dayjs from "dayjs";
 import installationSwitch from "../../utils/plugins/installationSwitch";
 import { pluginComponentCleanup } from "../../utils/plugins/pluginCleanup";
+import { PluginInstallationStatus } from "../../entities/Plugin";
 
 const pump = util.promisify(pipeline);
 
@@ -31,33 +32,25 @@ const installPlugin: FastifyPluginAsync = async (fastify, opts) => {
       readFileSync("./temp/package/package.json", "utf-8")
     );
 
-    let result = await fastify.prisma.plugin.findFirst({
-      where: {
-        name: packageJson.name,
-      },
-    });
-
-    let pluginExists = false;
-
-    if (!result) {
-      result = await fastify.prisma.plugin.create({
-        data: {
+    let [result, pluginCreated] =
+      await fastify.sequelize.models.Plugin.findOrCreate({
+        where: {
+          name: packageJson.name,
+        },
+        defaults: {
           name: packageJson.name,
           version: packageJson.version,
           description: packageJson.description,
+          enabled: true,
         },
       });
-    } else {
-      pluginExists = true;
-      result = await fastify.prisma.plugin.update({
-        data: {
-          version: packageJson.version,
-          description: packageJson.description,
-          installationStatus: "PENDING",
-        },
-        where: {
-          id: result.id,
-        },
+
+    if (!pluginCreated) {
+      await result.update({
+        name: packageJson.name,
+        version: packageJson.version,
+        description: packageJson.description,
+        enabled: true,
       });
     }
 
@@ -72,38 +65,35 @@ const installPlugin: FastifyPluginAsync = async (fastify, opts) => {
           const plugin = await import(packageJson.name);
 
           //Load params that cannot be loaded from package.json
-          await fastify.prisma.plugin.update({
-            data: {
-              logoUrl: plugin.default.default.config.logoUrl,
-              settingsSchema: plugin.default.default.config.settingsSchema,
-            },
-            where: {
-              id: result.id,
-            },
+
+          result.update({
+            logoUrl: plugin.default.default.config.logoUrl,
+            settingsSchema: plugin.default.default.config.settingsSchema,
           });
 
           appendFileSync(
             "./temp/log.txt",
             `${dayjs().toISOString()}: Plugin imported successfully ${JSON.stringify(
-              plugin
+              plugin,
+              null,
+              2
             )}\n`
           );
 
-          if (pluginExists) {
+          if (!pluginCreated) {
             await pluginComponentCleanup(fastify, result.id);
           }
 
           const promises = plugin.default.default.config.components.map(
             async (component: any) => {
-              const dbRecord = await fastify.prisma.pluginComponent.create({
-                data: {
+              const dbRecord =
+                await fastify.sequelize.models.PluginComponent.create({
                   function: component.function,
                   type: component.type,
                   pluginId: result.id,
                   name: packageJson.name,
                   description: packageJson.description,
-                },
-              });
+                });
 
               await installationSwitch(
                 fastify,
@@ -133,13 +123,37 @@ const installPlugin: FastifyPluginAsync = async (fastify, opts) => {
           //   )
           // );
 
-          await fastify.prisma.plugin.update({
-            data: {
-              installationStatus: "INSTALLED",
-            },
-            where: {
-              id: result.id,
-            },
+          if (plugin.default.default.config.models?.length) {
+            fastify.sequelize.addModels(plugin.default.default.config.models);
+
+            const promises: Promise<any>[] = [];
+
+            for (const model of plugin.default.default.config.models) {
+              appendFileSync(
+                "./temp/log.txt",
+                `${dayjs().toISOString()}: Creating model ${model.name}\n`
+              );
+              promises.push(
+                fastify.sequelize.models[model.name].sync({
+                  alter: true,
+                  logging(sql, timing) {
+                    appendFileSync(
+                      "./temp/log.txt",
+                      `${dayjs().toISOString()}: ${sql}\n`
+                    );
+                  },
+                })
+              );
+            }
+
+            await Promise.all(promises);
+          }
+
+          console.log("tete");
+          console.log(Object.keys(fastify.sequelize.models));
+
+          result.update({
+            installationStatus: PluginInstallationStatus.INSTALLED,
           });
 
           appendFileSync(

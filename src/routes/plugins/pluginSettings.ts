@@ -13,7 +13,7 @@ const pluginSettings: FastifyPluginAsync = async (
   }>("/", async function (request, reply) {
     const { id: idString } = request.params;
     const id = parseInt(idString);
-    const plugin = await fastify.prisma.plugin.findUnique({
+    const plugin = await fastify.sequelize.models.Plugin.findOne({
       where: {
         id,
       },
@@ -38,7 +38,7 @@ const pluginSettings: FastifyPluginAsync = async (
   }>("/", async function (request, reply) {
     const { id: idString } = request.params;
     const id = parseInt(idString);
-    const plugin = await fastify.prisma.plugin.findUnique({
+    const plugin = await fastify.sequelize.models.Plugin.findOne({
       where: {
         id,
       },
@@ -63,16 +63,11 @@ const pluginSettings: FastifyPluginAsync = async (
       return reply.badRequest("Invalid data");
     }
 
-    const updatedPlugin = await fastify.prisma.plugin.update({
-      where: {
-        id,
-      },
-      data: {
-        settings: data as any,
-      },
+    await plugin.update({
+      settings: data as any,
     });
 
-    return updatedPlugin?.settings;
+    return plugin?.settings;
   });
 };
 

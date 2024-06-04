@@ -1,18 +1,19 @@
 import { compareSync, hashSync } from "bcrypt";
 import { FastifyInstance } from "fastify";
 import { sign, verify, JwtPayload } from "jsonwebtoken";
-import fp from "fastify-plugin";
 import {
   Column,
-  CreatedAt,
   DataType,
   HasMany,
   Model,
   Table,
   Unique,
-  UpdatedAt,
 } from "sequelize-typescript";
-import { InferAttributes } from "sequelize";
+import { InferAttributes, InferCreationAttributes } from "sequelize";
+import { ContentItem } from "./ContentItem";
+
+//This is here because syncDb script will not work without it
+import "../plugins/env";
 
 type CreateUserWithEmailParams = {
   email: string;
@@ -21,7 +22,10 @@ type CreateUserWithEmailParams = {
 };
 
 @Table
-export class User extends Model<InferAttributes<User>> {
+export class User extends Model<
+  InferAttributes<User>,
+  InferCreationAttributes<User>
+> {
   @Column(DataType.STRING)
   name?: string;
 
@@ -39,30 +43,21 @@ export class User extends Model<InferAttributes<User>> {
   @Column(DataType.STRING)
   ssoToken?: string;
 
-  @CreatedAt
-  @Column(DataType.DATE)
-  createdAt!: Date;
+  @HasMany(() => ContentItem, {
+    onDelete: "CASCADE",
+    hooks: true,
+  })
+  contentItems?: ContentItem[];
 
-  @UpdatedAt
-  @Column(DataType.DATE)
-  updatedAt!: Date;
-
-  @HasMany(() => Team)
-  teams!: Team[];
-
-  @HasMany(() => ContentItem)
-  contentItems!: ContentItem[];
-
-  static async createWithEmailAndPassword(
-    { email, name, password }: CreateUserWithEmailParams,
-    teamId?: number
-  ) {
+  static async createWithEmailAndPassword({
+    email,
+    name,
+    password,
+  }: CreateUserWithEmailParams) {
     const user = await User.create({
       email,
       name,
       password: hashSync(password, 10),
-
-      teamId,
     });
 
     return user;
@@ -94,21 +89,8 @@ export class User extends Model<InferAttributes<User>> {
   }
 }
 
-export type UserInstance = InstanceType<typeof User>;
-export default fp(async (fastify, opts) => {
-  fastify.decorate("User", User);
-});
-
-// declare module "fastify" {
-//   export interface FastifyInstance {
-//     User: typeof User;
-//   }
-// }
-
 declare module "sequelize-typescript" {
-  export interface Sequelize {
-    models: {
-      User: typeof User;
-    };
+  export interface DefinedModels {
+    User: typeof User;
   }
 }

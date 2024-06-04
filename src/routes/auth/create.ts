@@ -19,18 +19,21 @@ const userCreate: FastifyPluginAsync = async (fastify, opts) => {
       },
     },
     async function (request, reply) {
-      const user = await fastify.User.createWithEmailAndPassword(request.body);
+      const user =
+        await fastify.sequelize.models.User.createWithEmailAndPassword(
+          request.body
+        );
 
-      request.log.info(
-        `New user created: ${user.user.email}, ${user.user.name}`
-      );
+      request.log.info(`New user created: ${user.email}, ${user.name}`);
 
-      const token = user.createJwt();
+      const token = user.createJwt(fastify);
 
+      // console.log(".token", token);
       reply.setCookie("token", token, {
         httpOnly: true,
         expires: dayjs().add(1, "day").toDate(),
         secure: fastify.config.NODE_ENV === "production",
+        path: "/",
       });
       return {
         success: true,

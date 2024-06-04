@@ -9,17 +9,16 @@ const uploadFile: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
 
     const buff = await data.toBuffer();
 
-    const fileUploadPlugin = await fastify.prisma.pluginComponent.findFirst({
-      where: {
-        function: "FILESTORAGE",
-        plugin: {
-          enabled: true,
+    const fileUploadPlugin =
+      await fastify.sequelize.models.PluginComponent.findOne({
+        where: {
+          function: "FILESTORAGE",
+          plugin: {
+            enabled: true,
+          },
         },
-      },
-      include: {
-        plugin: true,
-      },
-    });
+        include: fastify.sequelize.models.Plugin,
+      });
 
     if (!fileUploadPlugin) {
       return reply.badRequest("No file upload plugin found");

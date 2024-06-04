@@ -1,7 +1,6 @@
 import fastifyPlugin from "fastify-plugin";
-import { UserInstance } from "../entities/user";
 import { FastifyReply, FastifyRequest } from "fastify";
-import { User } from "@prisma/client";
+import { User } from "../entities/User";
 
 export default fastifyPlugin(async function (fastify, opts) {
   fastify.decorateRequest("user", undefined);
@@ -16,17 +15,17 @@ export default fastifyPlugin(async function (fastify, opts) {
         return;
       }
 
-      let user: UserInstance | null;
+      let user: User | null;
 
       try {
-        user = await fastify.User.findByToken(token, fastify);
+        user = await fastify.sequelize.models.User.findByToken(token, fastify);
       } catch (error) {
         reply.unauthorized("Unauthorized");
         return;
       }
 
       if (user) {
-        request.user = user.user;
+        request.user = user;
       } else {
         reply.unauthorized("Unauthorized");
       }

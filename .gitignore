@@ -69,4 +69,4 @@ temp
 csplugins
 private
 
-.env
+*.env

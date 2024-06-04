@@ -21,16 +21,16 @@ const pluginApiSwitch: FastifyPluginAsync = async (fastify): Promise<void> => {
       console.log("version", version);
 
       const pluginComponentRecord =
-        await fastify.prisma.pluginComponent.findFirst({
+        await fastify.sequelize.models.PluginComponent.findOne({
           where: {
             name,
             function: "PLUGIN_REST_API",
-            plugin: {
-              version,
-            },
           },
           include: {
-            plugin: true,
+            model: fastify.sequelize.models.Plugin,
+            where: {
+              version,
+            },
           },
         });
 

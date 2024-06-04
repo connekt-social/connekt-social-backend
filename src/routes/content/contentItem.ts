@@ -1,9 +1,9 @@
-import { ContentItemSize } from "@prisma/client";
 import { Static, Type } from "@sinclair/typebox";
 import Ajv from "ajv";
 import dayjs from "dayjs";
 import { FastifyPluginAsync } from "fastify";
 import { safeGet } from "../../utils/safeGet";
+import { ContentItemSize } from "../../entities/ContentItem";
 
 const contentItem: FastifyPluginAsync = async (
   fastify,
@@ -31,20 +31,23 @@ const contentItem: FastifyPluginAsync = async (
     if (!user) {
       return reply.unauthorized();
     }
-    const teams = await fastify.prisma.team.findMany({
+    const teams = await fastify.sequelize.models.Team.findAll({
       where: {
         id: teamId,
-        members: {
-          some: {
+      },
+      include: [
+        {
+          model: this.sequelize.models.User,
+          where: {
             id: user.id,
           },
         },
-      },
+      ],
     });
 
     console.log("teams", teams);
 
-    const contentType = await fastify.prisma.contentType.findUnique({
+    const contentType = await fastify.sequelize.models.ContentType.findOne({
       where: {
         id: contentTypeId,
       },
@@ -63,21 +66,18 @@ const contentItem: FastifyPluginAsync = async (
       }
     }
 
-    const item = await fastify.prisma.contentItem.create({
-      data: {
-        teamId: teamId ?? teams[0]?.id,
-        userId: user.id,
-        contentTypeId: contentType.id,
+    const item = await fastify.sequelize.models.ContentItem.create({
+      userId: user.id,
+      contentTypeId: contentType.id,
+      data,
+      title: safeGet(
         data,
-        title: safeGet(
-          data,
-          contentType.titlePath,
-          `${dayjs().format("YYYY-MM-DD HH:mm:ss")} Upload`
-        ),
-        caption: safeGet(data, contentType.captionPath),
-        thumbnail: safeGet(data, contentType.thumbnailPath),
-        size: (size ?? "SQUARE") as ContentItemSize,
-      },
+        contentType.titlePath,
+        `${dayjs().format("YYYY-MM-DD HH:mm:ss")} Upload`
+      ),
+      caption: safeGet(data, contentType.captionPath),
+      thumbnail: safeGet(data, contentType.thumbnailPath),
+      size: (size ?? "SQUARE") as ContentItemSize,
     });
 
     return reply.send(item);

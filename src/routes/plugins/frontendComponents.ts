@@ -1,6 +1,6 @@
-import { PluginFunction } from "@prisma/client";
 import { FastifyPluginAsync } from "fastify";
 import { readFileSync } from "fs";
+import { PluginFunction } from "../../entities/PluginComponent";
 
 const frontendComponents: FastifyPluginAsync = async (
   fastify,
@@ -31,15 +31,14 @@ const frontendComponents: FastifyPluginAsync = async (
     },
     async function (request, reply) {
       const { function: functionType, pluginId } = request.query;
-      const frontendComponents = await fastify.prisma.pluginComponent.findMany({
-        where: {
-          function: functionType,
-          pluginId,
-        },
-        include: {
-          frontendComponent: true,
-        },
-      });
+      const frontendComponents =
+        await fastify.sequelize.models.PluginComponent.findAll({
+          where: {
+            function: functionType,
+            pluginId,
+          },
+          include: fastify.sequelize.models.FrontendComponent,
+        });
       return frontendComponents;
     }
   );
@@ -51,14 +50,13 @@ const frontendComponents: FastifyPluginAsync = async (
   }>("/:id", async function (request, reply) {
     const { id: idString } = request.params;
     const id = parseInt(idString);
-    const frontendComponent = await fastify.prisma.frontendComponent.findFirst({
-      where: {
-        id,
-      },
-      include: {
-        pluginComponent: true,
-      },
-    });
+    const frontendComponent =
+      await fastify.sequelize.models.FrontendComponent.findOne({
+        where: {
+          id,
+        },
+        include: fastify.sequelize.models.PluginComponent,
+      });
 
     if (!frontendComponent) {
       return reply.notFound("Frontend Component not found");
