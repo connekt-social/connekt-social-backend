@@ -13,11 +13,15 @@ const uploadFile: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       await fastify.sequelize.models.PluginComponent.findOne({
         where: {
           function: "FILESTORAGE",
-          plugin: {
-            enabled: true,
-          },
         },
-        include: fastify.sequelize.models.Plugin,
+        include: [
+          {
+            model: fastify.sequelize.models.Plugin,
+            where: {
+              enabled: true,
+            },
+          },
+        ],
       });
 
     if (!fileUploadPlugin) {

@@ -15,8 +15,7 @@ const contentItem: FastifyPluginAsync = async (
   TODO: Add a way to change the property that gives the title, caption and thumbnail based on the content type
   */
   const itemUploadSchema = Type.Object({
-    teamId: Type.Optional(Type.Number()),
-    contentTypeId: Type.Number(),
+    contentFormatCode: Type.String(),
     data: Type.Any(),
     size: Type.Optional(Type.String()),
   });
@@ -25,40 +24,25 @@ const contentItem: FastifyPluginAsync = async (
   fastify.post<{
     Body: itemUploadType;
   }>("/", async function (request, reply) {
-    const { teamId, contentTypeId, data, size } = request.body;
+    const { contentFormatCode, data, size } = request.body;
 
     const { user } = request;
     if (!user) {
       return reply.unauthorized();
     }
-    const teams = await fastify.sequelize.models.Team.findAll({
-      where: {
-        id: teamId,
-      },
-      include: [
-        {
-          model: this.sequelize.models.User,
-          where: {
-            id: user.id,
-          },
-        },
-      ],
-    });
 
-    console.log("teams", teams);
-
-    const contentType = await fastify.sequelize.models.ContentType.findOne({
+    const contentFormat = await fastify.sequelize.models.ContentFormat.findOne({
       where: {
-        id: contentTypeId,
+        code: contentFormatCode,
       },
     });
 
-    if (!contentType) {
-      return reply.notFound("Content type not found");
+    if (!contentFormat) {
+      return reply.notFound("Content format not found");
     }
 
-    if (contentType.schema) {
-      const validate = new Ajv().compile(contentType.schema as any);
+    if (contentFormat.schema) {
+      const validate = new Ajv().compile(contentFormat.schema as any);
       const valid = validate(data);
 
       if (!valid) {
@@ -68,19 +52,45 @@ const contentItem: FastifyPluginAsync = async (
 
     const item = await fastify.sequelize.models.ContentItem.create({
       userId: user.id,
-      contentTypeId: contentType.id,
       data,
       title: safeGet(
         data,
-        contentType.titlePath,
+        contentFormat.titlePath,
         `${dayjs().format("YYYY-MM-DD HH:mm:ss")} Upload`
       ),
-      caption: safeGet(data, contentType.captionPath),
-      thumbnail: safeGet(data, contentType.thumbnailPath),
+      caption: safeGet(data, contentFormat.captionPath),
+      thumbnail: safeGet(data, contentFormat.thumbnailPath),
       size: (size ?? "SQUARE") as ContentItemSize,
+      contentFormatCode: contentFormat.code,
     });
 
     return reply.send(item);
+  });
+
+  fastify.get("/", async function (request, reply) {
+    const items = await fastify.sequelize.models.ContentItem.findAll({
+      order: [["createdAt", "desc"]],
+    });
+
+    return items;
+  });
+
+  fastify.get<{
+    Params: {
+      id: string;
+    };
+  }>("/:id", async function (request, reply) {
+    const { id: idString } = request.params;
+
+    const id = parseInt(idString);
+
+    const item = await fastify.sequelize.models.ContentItem.findOne({
+      where: {
+        id,
+      },
+    });
+
+    return item;
   });
 };
 

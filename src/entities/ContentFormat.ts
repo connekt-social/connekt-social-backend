@@ -3,24 +3,23 @@ import {
   Column,
   Model,
   DataType,
-  BelongsTo,
-  ForeignKey,
+  HasMany,
+  PrimaryKey,
 } from "sequelize-typescript";
-
 import type {
   CreationOptional,
   InferAttributes,
   InferCreationAttributes,
 } from "sequelize";
-import { Plugin } from "./Plugin";
-import { ContentFormat } from "./ContentFormat";
+import { ContentItem } from "./ContentItem";
+import { ContentType } from "./ContentType";
 
 @Table
-export class ContentType extends Model<
-  InferAttributes<ContentType>,
-  InferCreationAttributes<ContentType>
+export class ContentFormat extends Model<
+  InferAttributes<ContentFormat>,
+  InferCreationAttributes<ContentFormat>
 > {
-  @ForeignKey(() => ContentFormat)
+  @PrimaryKey
   @Column(DataType.STRING)
   code!: string;
 
@@ -31,7 +30,7 @@ export class ContentType extends Model<
   description?: string;
 
   @Column(DataType.JSON)
-  schema?: object;
+  schema!: object;
 
   @Column(DataType.JSON)
   uiSchema?: object;
@@ -45,16 +44,20 @@ export class ContentType extends Model<
   @Column(DataType.STRING)
   captionPath?: string;
 
-  @ForeignKey(() => Plugin)
-  @Column(DataType.INTEGER)
-  pluginId!: number;
+  @HasMany(() => ContentItem, {
+    onDelete: "CASCADE",
+    hooks: true,
+  })
+  contentItems?: CreationOptional<ContentItem[]>;
 
-  @BelongsTo(() => Plugin)
-  plugin!: CreationOptional<Plugin>;
+  @HasMany(() => ContentType, {
+    onDelete: "CASCADE",
+  })
+  contentTypes?: ContentType[];
 }
 
 declare module "sequelize-typescript" {
   export interface DefinedModels {
-    ContentType: typeof ContentType;
+    ContentFormat: typeof ContentFormat;
   }
 }

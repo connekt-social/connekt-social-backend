@@ -6,13 +6,13 @@ import {
   ForeignKey,
   BelongsTo,
 } from "sequelize-typescript";
-import { ContentType } from "./ContentType";
 import { User } from "./User";
 import type {
   CreationOptional,
   InferAttributes,
   InferCreationAttributes,
 } from "sequelize";
+import { ContentFormat } from "./ContentFormat";
 
 export enum ContentItemSize {
   SQUARE = "SQUARE",
@@ -30,9 +30,9 @@ export class ContentItem extends Model<
   @Column(DataType.INTEGER)
   userId!: number;
 
-  @ForeignKey(() => ContentType)
-  @Column(DataType.INTEGER)
-  contentTypeId!: number;
+  @ForeignKey(() => ContentFormat)
+  @Column(DataType.STRING)
+  contentFormatCode!: string;
 
   @Column(DataType.JSON)
   data!: object;
@@ -49,8 +49,8 @@ export class ContentItem extends Model<
   @Column(DataType.ENUM(...Object.values(ContentItemSize)))
   size!: ContentItemSize;
 
-  @BelongsTo(() => ContentType)
-  contentType!: CreationOptional<ContentType>;
+  @BelongsTo(() => ContentFormat)
+  contentFormat!: CreationOptional<ContentFormat>;
 
   @BelongsTo(() => User)
   user!: CreationOptional<User>;

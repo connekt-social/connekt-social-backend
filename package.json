@@ -13,7 +13,8 @@
     "build:ts": "tsc",
     "watch:ts": "tsc -w",
     "dev": "npm run build:ts && concurrently -k -p \"[{name}]\" -n \"TypeScript,App\" -c \"yellow.bold,cyan.bold\" \"npm:watch:ts\" \"npm:dev:start\"",
-    "dev:start": "fastify start --options --ignore-watch=.ts$ -w -l info -P dist/app.js"
+    "dev:start": "fastify start --options --ignore-watch=.ts$ -w -l info -P dist/app.js",
+    "dbsync": "ts-node -P dbsync.tsconfig.json src/syncDb.ts"
   },
   "keywords": [],
   "author": "",
