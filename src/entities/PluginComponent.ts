@@ -26,6 +26,7 @@ export enum PluginFunction {
   CONTENTTYPE = "CONTENTTYPE",
   PLUGIN_SETTINGS_TAB = "PLUGIN_SETTINGS_TAB",
   PLUGIN_REST_API = "PLUGIN_REST_API",
+  CONTENT_PUBLISH = "CONTENT_PUBLISH",
 }
 // Define your plugin functions here
 

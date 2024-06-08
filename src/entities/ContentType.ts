@@ -25,6 +25,9 @@ export class ContentType extends Model<
   code!: string;
 
   @Column(DataType.STRING)
+  key!: string;
+
+  @Column(DataType.STRING)
   name!: string;
 
   @Column(DataType.STRING)
