@@ -27,6 +27,7 @@ export enum PluginFunction {
   PLUGIN_SETTINGS_TAB = "PLUGIN_SETTINGS_TAB",
   PLUGIN_REST_API = "PLUGIN_REST_API",
   CONTENT_PUBLISH = "CONTENT_PUBLISH",
+  STANDALONE_PAGE = "STANDALONE_PAGE", //pages shown outside of the dashboard layout
 }
 // Define your plugin functions here
 

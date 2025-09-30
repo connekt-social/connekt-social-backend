@@ -16,6 +16,7 @@ export default async function installationSwitch(
       break;
 
     case "PLUGIN_SETTINGS_TAB":
+    case "STANDALONE_PAGE":
       await fastify.sequelize.models.FrontendComponent.create({
         componentName: component.data.componentName,
         entryPoint: component.data.entryPoint,

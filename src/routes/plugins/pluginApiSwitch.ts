@@ -57,6 +57,8 @@ const pluginApiSwitch: FastifyPluginAsync = async (fastify): Promise<void> => {
         fastify,
         path,
         method: request.method,
+        config: pluginComponentRecord.plugin?.settings,
+        pluginId: pluginComponentRecord.plugin.id,
       });
       return response;
     },

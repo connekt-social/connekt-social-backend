@@ -32,8 +32,9 @@ const userCreate: FastifyPluginAsync = async (fastify, opts) => {
       reply.setCookie("token", token, {
         httpOnly: true,
         expires: dayjs().add(1, "day").toDate(),
-        secure: fastify.config.NODE_ENV === "production",
+        secure: true,
         path: "/",
+        sameSite: "none",
       });
       return {
         success: true,

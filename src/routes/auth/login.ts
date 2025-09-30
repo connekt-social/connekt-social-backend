@@ -18,6 +18,7 @@ const userLogin: FastifyPluginAsync = async (fastify, opts) => {
       },
     },
     async function (request, reply) {
+      console.log(request.url);
       const user = await fastify.sequelize.models.User.findOne({
         where: {
           email: request.body.email,
@@ -34,8 +35,9 @@ const userLogin: FastifyPluginAsync = async (fastify, opts) => {
       reply.setCookie("token", token, {
         httpOnly: true,
         expires: dayjs().add(1, "day").toDate(),
-        secure: fastify.config.NODE_ENV === "production",
+        secure: true,
         path: "/",
+        sameSite: "none",
       });
 
       return {
@@ -43,6 +45,12 @@ const userLogin: FastifyPluginAsync = async (fastify, opts) => {
       };
     }
   );
+
+  fastify.get("/", async function (request) {
+    console.log(request.hostname, request.url);
+
+    return "hello world";
+  });
 };
 
 export default userLogin;

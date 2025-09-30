@@ -3,7 +3,8 @@ import Ajv from "ajv";
 import dayjs from "dayjs";
 import { FastifyPluginAsync } from "fastify";
 import { safeGet } from "../../utils/safeGet";
-import { ContentItemSize } from "../../entities/ContentItem";
+import { ContentItem, ContentItemSize } from "../../entities/ContentItem";
+import { InferCreationAttributes } from "sequelize";
 
 const contentItem: FastifyPluginAsync = async (
   fastify,
@@ -22,49 +23,58 @@ const contentItem: FastifyPluginAsync = async (
 
   fastify.post<{
     Body: itemUploadType;
-  }>("/", async function (request, reply) {
-    const { contentFormatCode, data, size } = request.body;
-
-    const { user } = request;
-    if (!user) {
-      return reply.unauthorized();
-    }
-
-    const contentFormat = await fastify.sequelize.models.ContentFormat.findOne({
-      where: {
-        code: contentFormatCode,
+  }>(
+    "/",
+    {
+      schema: {
+        body: itemUploadSchema,
       },
-    });
+    },
+    async function (request, reply) {
+      const { contentFormatCode, data, size } = request.body;
 
-    if (!contentFormat) {
-      return reply.notFound("Content format not found");
-    }
-
-    if (contentFormat.schema) {
-      const validate = new Ajv().compile(contentFormat.schema as any);
-      const valid = validate(data);
-
-      if (!valid) {
-        return reply.badRequest("Invalid data");
+      const { user } = request;
+      if (!user) {
+        return reply.unauthorized();
       }
-    }
 
-    const item = await fastify.sequelize.models.ContentItem.create({
-      userId: user.id,
-      data,
-      title: safeGet(
+      const contentFormat =
+        await fastify.sequelize.models.ContentFormat.findOne({
+          where: {
+            code: contentFormatCode,
+          },
+        });
+
+      if (!contentFormat) {
+        return reply.notFound("Content format not found");
+      }
+
+      if (contentFormat.schema) {
+        const validate = new Ajv().compile(contentFormat.schema as any);
+        const valid = validate(data);
+
+        if (!valid) {
+          return reply.badRequest("Invalid data");
+        }
+      }
+
+      const item = await fastify.sequelize.models.ContentItem.create({
+        userId: user.id,
         data,
-        contentFormat.titlePath,
-        `${dayjs().format("YYYY-MM-DD HH:mm:ss")} Upload`
-      ),
-      caption: safeGet(data, contentFormat.captionPath),
-      thumbnail: safeGet(data, contentFormat.thumbnailPath),
-      size: (size ?? "SQUARE") as ContentItemSize,
-      contentFormatCode: contentFormat.code,
-    });
+        title: safeGet(
+          data,
+          contentFormat.titlePath,
+          `${dayjs().format("YYYY-MM-DD HH:mm:ss")} Upload`
+        ),
+        caption: safeGet(data, contentFormat.captionPath),
+        thumbnail: safeGet(data, contentFormat.thumbnailPath),
+        size: (size ?? "SQUARE") as ContentItemSize,
+        contentFormatCode: contentFormat.code,
+      });
 
-    return reply.send(item);
-  });
+      return reply.send(item);
+    }
+  );
 
   fastify.get("/", async function (request, reply) {
     const items = await fastify.sequelize.models.ContentItem.findAll({
@@ -90,6 +100,92 @@ const contentItem: FastifyPluginAsync = async (
     });
 
     return item;
+  });
+
+  const itemUpdateSchema = Type.Object({
+    contentFormatCode: Type.Optional(Type.String()),
+    data: Type.Optional(Type.Any()),
+    size: Type.Optional(Type.String()),
+  });
+  type itemUpdateType = Static<typeof itemUpdateSchema>;
+  fastify.put<{
+    Body: itemUpdateType;
+    Params: {
+      id: string;
+    };
+  }>(
+    "/:id",
+    {
+      schema: {
+        body: itemUpdateSchema,
+      },
+    },
+    async function (request, reply) {
+      const { id: idString } = request.params;
+
+      const { contentFormatCode, data, size } = request.body;
+
+      const id = parseInt(idString);
+
+      const { ContentFormat } = fastify.sequelize.models;
+
+      const item = await fastify.sequelize.models.ContentItem.findOne({
+        where: {
+          id,
+        },
+      });
+
+      if (!item) {
+        return reply.notFound("Content item not found");
+      }
+
+      let itemDetails: Partial<InferCreationAttributes<ContentItem>> = {
+        contentFormatCode,
+        size: size as ContentItemSize | undefined,
+      };
+
+      const contentFormat = await ContentFormat.findOne({
+        where: {
+          code: contentFormatCode ?? item.contentFormatCode,
+        },
+      });
+
+      if (!contentFormat) {
+        return reply.badRequest("Invalid content format");
+      }
+
+      if (data) {
+        itemDetails = {
+          ...itemDetails,
+          data,
+          title: safeGet(data, contentFormat.titlePath, item.title),
+          caption: safeGet(data, contentFormat.captionPath, item.caption),
+          thumbnail: safeGet(data, contentFormat.thumbnailPath, item.thumbnail),
+        };
+      }
+
+      await item.update(itemDetails);
+
+      return item.toJSON();
+    }
+  );
+
+  fastify.delete<{
+    Params: {
+      id: string;
+    };
+  }>("/:id", async function (request, reply) {
+    const { id: idString } = request.params;
+
+    const id = parseInt(idString);
+
+    const items = await fastify.sequelize.models.ContentItem.destroy({
+      where: {
+        id,
+      },
+    });
+
+    return { count: items, message: "Deleted successfully" };
   });
 
   const itemPublishSchema = Type.Object({
@@ -167,7 +263,12 @@ const contentItem: FastifyPluginAsync = async (
 
         if (component && component.handler) {
           promises.push(
-            component.handler({ contentItem: item, fastify, contentType })
+            component.handler({
+              contentItem: item,
+              fastify,
+              contentType,
+              config: pluginComponentRecord.plugin?.settings,
+            })
           );
         }
       }
